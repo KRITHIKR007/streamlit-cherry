@@ -1,0 +1,21 @@
+# Core requirements
+vaderSentiment==3.3.2
+streamlit==1.27.0
+pandas==2.1.0
+numpy==1.24.3
+
+# Web scraping
+beautifulsoup4==4.12.0
+requests==2.31.0
+
+# NLP
+nltk==3.8.1
+
+# Visualization
+matplotlib==3.7.2
+wordcloud==1.9.0
+plotly==5.16.1
+
+# ML (optional)
+transformers==4.33.2
+torch==2.0.1
