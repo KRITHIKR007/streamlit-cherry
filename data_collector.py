@@ -4,36 +4,37 @@ import pandas as pd
 from datetime import datetime
 import logging
 import time
+import random
 
 class ReviewCollector:
     def __init__(self):
-        self.headers = {"User-Agent": "Mozilla/5.0"}
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        self.base_url = "https://www.amazon.com/product-reviews/{product_id}/ref=cm_cr_arp_d_paging_btm_next_{page}?pageNumber={page}"
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
     def get_amazon_reviews(self, product_id, max_pages=5, max_retries=3):
-        reviews = []
-        base_url = f"https://www.amazon.com/product-reviews/{product_id}"
+        reviews_data = []
         
         for page in range(1, max_pages + 1):
+            url = self.base_url.format(product_id=product_id, page=page)
             retries = 0
             while retries < max_retries:
                 try:
                     time.sleep(2)
-                    response = requests.get(f"{base_url}?pageNumber={page}", 
-                                         headers=self.headers, 
-                                         timeout=10)  # Add timeout
+                    response = requests.get(url, headers=self.headers, timeout=10)  # Add timeout
                     response.raise_for_status()  # Raise exception for bad status codes
-                    soup = BeautifulSoup(response.text, "html.parser")
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                    reviews = soup.find_all('div', {'data-hook': 'review'})
                     
-                    review_elements = soup.find_all("div", {"data-hook": "review"})
-                    
-                    for review in review_elements:
-                        review_text = review.find("span", {"data-hook": "review-body"})
-                        review_date = review.find("span", {"data-hook": "review-date"})
+                    for review in reviews:
+                        review_text = review.find('span', {'data-hook': 'review-body'})
+                        review_date = review.find('span', {'data-hook': 'review-date'})
                         
                         if review_text and review_date:
-                            reviews.append({
+                            reviews_data.append({
                                 'review_text': review_text.text.strip(),
                                 'date': datetime.strptime(
                                     review_date.text.split('on ')[-1], 
@@ -50,7 +51,10 @@ class ReviewCollector:
                         time.sleep(retries * 2)  # Exponential backoff
                         continue
                 
-        return pd.DataFrame(reviews)
+                # Add delay to avoid rate limiting
+                time.sleep(random.uniform(1, 2))
+        
+        return pd.DataFrame(reviews_data)
 
     def get_product_category(self, soup):
         """Extract product category from page"""
